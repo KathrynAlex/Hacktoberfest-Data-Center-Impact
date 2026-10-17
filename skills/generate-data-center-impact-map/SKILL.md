@@ -25,26 +25,9 @@ This skill guides the agent in creating a map that overlays data center planning
    - Identify overlaps or close proximities (buffers) between the data center sites and environmental zones.
 
 ## Implementation Reference
-
 The following Python template should be used for the render:
 
-```python
-import folium
-import json
+**Command:**
+`python3 render_map.py <dc_file> <env_file> <output_file> [cartodb_api_key]`
 
-def create_impact_map(dc_file, env_file, output="impact_map.html"):
-    m = folium.Map(location=[50.7, -5.0], zoom_start=7, tiles="CartoDB positron")
-    
-    # Data Centers Layer
-    with open(dc_file) as f:
-        folium.GeoJson(json.load(f), name="Data Center Applications", 
-                      style_function=lambda x: {'color': 'red'}).add_to(m)
-        
-    # Environmental Sites Layer
-    with open(env_file) as f:
-        folium.GeoJson(json.load(f), name="Environmental Interest", 
-                      style_function=lambda x: {'color': 'green'}).add_to(m)
-        
-    folium.LayerControl().add_to(m)
-    m.save(output)
-```
+The script handles the overlay of GeoJSON layers and can use a CartoDB API key to ensure high-quality base tiles load without restrictions.
