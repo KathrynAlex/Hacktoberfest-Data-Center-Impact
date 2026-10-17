@@ -20,7 +20,7 @@ capabilities:
     outputs:
       type: application/geo+json
       description: A GeoJSON FeatureCollection of matching infrastructure projects
-    tool: "python3 uk_dc_tracker.py --scope {scope} --query {query} --format {format}"
+    tool: "python3 uk_dc_tracker.py --scope \"{scope}\" --query \"{query}\" --format {format}"
 ---
 
 # UK Infrastructure Tracker Skill
@@ -35,7 +35,7 @@ To extract a structured, mapping-ready list of nationally significant infrastruc
 The primary tool is the `uk_dc_tracker.py` coordinator script.
 
 **Command:**
-`python3 uk_dc_tracker.py --scope <SCOPE> --query <QUERY> --format geojson`
+`python3 uk_dc_tracker.py --scope "{SCOPE}" --query "{QUERY}" --format geojson`
 
 ### Arguments:
 - `--scope`: 

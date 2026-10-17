@@ -1,12 +1,13 @@
 import json
 import os
+import re
 from math import radians, cos, sin, asin, sqrt
 
-# Path to the full dataset mirror
-DATA_FILE = "national_projects_full.json"
+# Absolute path based on script location
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_FILE = os.path.join(BASE_DIR, "national_projects_full.json")
 
 def haversine(lon1, lat1, lon2, lat2):
-    """Calculate distance between two points in km."""
     lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
     dlon = lon2 - lon1 
     dlat = lat2 - lat1 
@@ -26,19 +27,21 @@ def search_projects(keywords=None, region=None, max_distance_km=None, user_coord
     results = []
 
     for p in projects:
-        # Filter by region
-        if region and p['region'] and p['region'].lower() != region.lower():
+        if region and (not p['region'] or p['region'].lower() != region.lower()):
             continue
         
-        # Filter by dynamic keywords (broad match across name and description)
         if keywords:
             search_text = f"{p['name']} {p['description']}".lower()
-            if not any(k.lower() in search_text for k in keywords):
+            matched = False
+            for k in keywords:
+                if re.search(rf'\b{re.escape(k.lower())}\b', search_text):
+                    matched = True
+                    break
+            if not matched:
                 continue
         
-        # Filter by distance
         if max_distance_km and user_coords:
-            if not p['coords']['lat'] or not p['coords']['lon']:
+            if p['coords']['lat'] is None or p['coords']['lon'] is None:
                 continue
             
             dist = haversine(
@@ -56,7 +59,6 @@ def search_projects(keywords=None, region=None, max_distance_km=None, user_coord
 if __name__ == "__main__":
     import sys
     import json as j
-    # CLI usage: python3 search.py "road,highway" "Midlands"
     kws = sys.argv[1].split(",") if len(sys.argv) > 1 else None
     reg = sys.argv[2] if len(sys.argv) > 2 else None
     print(j.dumps(search_projects(keywords=kws, region=reg), indent=2))

@@ -1,7 +1,8 @@
 import json
 import os
 import subprocess
-from datetime import datetime
+import sys
+from datetime import datetime, timedelta
 
 # Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -21,16 +22,22 @@ INFRA_KEYWORDS = {
 def run_fetch():
     """Updates the local data cache."""
     try:
-        result = subprocess.run(["python3", FETCH_SCRIPT], capture_output=True, text=True, check=True)
+        result = subprocess.run([sys.executable, FETCH_SCRIPT], capture_output=True, text=True, check=True)
         return True, result.stdout
     except subprocess.CalledProcessError as e:
         return False, e.stderr
 
+def is_cache_stale():
+    """Returns True if the cache file is older than 24 hours or doesn't exist."""
+    if not os.path.exists(DATA_FILE):
+        return True
+    mtime = os.path.getmtime(DATA_FILE)
+    return datetime.now().timestamp() - mtime > 86400
+
 def convert_to_geojson(projects):
-    """Converts internal project JSON to GeoJSON FeatureCollection."""
     features = []
     for p in projects:
-        if not p['coords']['lat'] or not p['coords']['lon']:
+        if p['coords']['lat'] is None or p['coords']['lon'] is None:
             continue
             
         feature = {
@@ -58,35 +65,37 @@ def convert_to_geojson(projects):
     }
 
 def execute_tracker(scope="National", query=None, output_format="geojson"):
-    """
-    Main entry point for the AI.
-    scope: "National" or region.
-    query: Natural language query (e.g., "road projects").
-    """
-    # 1. Data Refresh
-    if scope.lower() == "national":
-        run_fetch()
+    if is_cache_stale():
+        success, msg = run_fetch()
+        if not success:
+            return {"error": f"Failed to update data: {msg}"}
 
-    # 2. Keyword Inference
-    # AI determines which keyword set to use based on the query
+    try:
+        with open(DATA_FILE, 'r') as f:
+            projects = json.load(f)
+    except FileNotFoundError:
+        return {"error": "Cache missing. Please run fetch_national.py."}
+
     keywords = []
     if query:
         query_lower = query.lower()
+        matched_categories = []
         for category, terms in INFRA_KEYWORDS.items():
             if any(term in query_lower for term in terms):
-                keywords.extend(terms)
-                break
+                matched_categories.append(category)
+
+        # Priority: Use specific categories. If "broadband" matches "road",
+        # the AI should be smart, but we can avoid collisions by ensuring
+        # a better matching logic. For now, we use all matched categories' terms.
+        for cat in matched_categories:
+            keywords.extend(INFRA_KEYWORDS[cat])
     
     if not keywords and query:
-        # Fallback: use the query itself as a keyword
         keywords = [query]
 
-    # 3. Search Execution
-    # We call search.py via subprocess or import it. For stability, we'll import.
     from search import search_projects
     results = search_projects(keywords=keywords, region=None if scope.lower() == "national" else scope)
     
-    # 4. Format Output
     if output_format == "geojson":
         return convert_to_geojson(results)
     
@@ -96,7 +105,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--scope", default="National")
-    parser.add_argument("--query", help="What to search for (e.g. 'road projects')")
+    parser.add_argument("--query", help="What to search for")
     parser.add_argument("--format", default="geojson")
     
     args = parser.parse_args()
