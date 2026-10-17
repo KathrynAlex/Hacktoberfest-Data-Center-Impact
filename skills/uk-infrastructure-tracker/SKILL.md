@@ -1,5 +1,5 @@
 ---
-skill_id: uk.infra.tracker
+skill_id: uk-infrastructure-tracker
 version: 1.0.0
 capabilities:
   - name: extract_infrastructure_geojson
