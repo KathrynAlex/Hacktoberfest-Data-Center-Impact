@@ -19,7 +19,8 @@ This skill guides the agent in creating a map that overlays data center planning
    - Use distinct colors for different layers:
      - Planning Applications: Red/Orange.
      - Environmental Sites: Green.
-   - Use `CartoDB positron` as the tile provider to avoid OpenStreetMap access blocks.
+   - Use `CartoDB positron` as the tile provider to avoid OpenStreetMap access blocks (works without a key today; pass a CartoDB key if tiles stop loading).
+   - The map zooms to the projects automatically.
 
 3. **Analysis**:
    - Identify overlaps or close proximities (buffers) between the data center sites and environmental zones.
@@ -28,6 +29,11 @@ This skill guides the agent in creating a map that overlays data center planning
 The following Python template should be used for the render:
 
 **Command:**
-`python3 render_map.py <dc_file> <env_file> <output_file> [cartodb_api_key]`
+`python3 skills/generate-data-center-impact-map/render_map.py <infra_file> <env_file> <output_file> [cartodb_api_key] [--label "Data Centres"]`
+
+`--label` names the projects layer (defaults to "Infrastructure Projects").
+
+**Viewing:** serve the output directory rather than opening the file directly:
+`python3 -m http.server 8000 --directory <output_dir>`
 
 The script handles the overlay of GeoJSON layers and can use a CartoDB API key to ensure high-quality base tiles load without restrictions.
